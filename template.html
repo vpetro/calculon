@@ -1,0 +1,43 @@
+<html>
+  <head>
+    <title>Stats</title>
+    <script src="/static/jquery.js" type="text/javascript"></script>
+    <script src="/static/jquery.flot.js" type="text/javascript"></script>
+  </head>
+  <body>
+
+    <div id="placeholder" style="width:900px;height:300px"></div>
+
+    <script language="javascript" type="text/javascript">
+      var $j = jQuery.noConflict();
+      $j(function ()  {
+          var dataArray = [];
+
+          {% for (key, value) in values %}
+          dataArray.push([{{ key }}, {{ value }}]);
+          {% end %}
+
+          var data = [
+            {
+              label: "{{ name }}",
+              data: dataArray
+            }
+          ];
+
+          var options = {
+          legend: { show: true, margin: 10, backgroundOpacity: 0.5 },
+          points: { show: true, radius: 3 },
+          lines: { show: true },
+          grid: { borderWidth:0 },
+          xaxis: { tickSize:2 },
+          yaxis: { tickSize:2, tickDecimals: 0 }
+          };
+
+          var plotarea = $j("#placeholder");
+
+          $j.plot( plotarea , data, options );
+          });
+</script>
+
+  </body>
+</html>
