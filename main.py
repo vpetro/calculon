@@ -53,7 +53,10 @@ class StatisticsRecorder(tornado.web.RequestHandler):
             return
 
         jc['ts'] = time.time()
-        jc['count'] = 1
+        # by default add 1 tfor every counter, otherwise use whatever is supplied
+        if 'count' not  in jc:
+            jc['count'] = 1
+
         self.db.counters.insert(jc, callback=self._on_post)
 
     def _on_post(self, response, error):
