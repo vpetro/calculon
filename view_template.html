@@ -14,6 +14,7 @@
         <th>Count</th>
         <th>First Seen On</th>
         <th>Last Seen On</th>
+        <th>Meta Info</th>
       </tr>
     </thead>
     <tbody>
@@ -23,6 +24,15 @@
       <td>{{ row['count'] }}</td>
       <td>{{ row['first_seen'] }} </td>
       <td>{{ row['last_seen'] }}</td>
+      <td>
+        {% if 'meta' in row  and row['meta']['type'] == 'exception' %}
+          {% for line in row['meta']['lines'].split('\n') %}
+            {{ line }} <br/>
+          {% end %}
+        {% else %}
+        -
+        {% end %}
+      </td>
     </tr>
     {% end %}
   </tbody>

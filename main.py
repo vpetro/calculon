@@ -47,7 +47,9 @@ class StatisticsRecorder(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     def post(self):
         jc = None
-        temp = self.get_argument("r", None)
+        #temp = self.get_argument("r", None)
+        temp = self.request.body
+
         if temp is not None:
             jc = json.loads(temp)
 
@@ -55,10 +57,67 @@ class StatisticsRecorder(tornado.web.RequestHandler):
             self.finish()
             return
 
+        if 'meta' in jc and jc['meta']['type'] == 'exception':
+            meta = jc['meta']
+            exception_hash = "%s-%s-%d" % (
+                    meta['name'],
+                    meta['value'],
+                    meta['lineno'])
+            exception_hash = exception_hash.lower()
 
-        #self.db.counters.insert(jc, callback=partial(self._on_post, jc))
-        self.db.counters.find_one({'name': jc['name']},
-                callback=partial(self._on_name_search, jc))
+            query = {
+                'name': jc['name'],
+                'exception_hash': exception_hash,
+            }
+
+            self.db.counterlist.find_one(
+                    query,
+                    callback=partial(self._on_exception_search, jc))
+        else:
+            self.db.counterlist.find_one({'name': jc['name']},
+                    callback=partial(self._on_name_search, jc))
+
+    def _on_exception_search(self, jc, response, error):
+        meta = jc['meta']
+        exception_hash = "%s-%s-%d" % (
+                meta['name'],
+                meta['value'],
+                meta['lineno'])
+        exception_hash = exception_hash.lower()
+
+        if not response:
+
+            to_insert = {
+                    'name': jc['name'],
+                    'count': 1,
+                    'last_seen': time.time(),
+                    'first_seen': time.time(),
+                    'meta': meta,
+                    'exception_hash': exception_hash,
+            }
+            self.db.counterlist.insert(
+                    to_insert,
+                    callback=lambda response, error=None: None)
+
+        else:
+            query = {
+                'name': jc['name'],
+                'exception_hash': exception_hash,
+            }
+
+            operation = {'$inc': {'count': 1}, '$set': {'last_seen': time.time()}}
+
+            self.db.counterlist.update(
+                    query,
+                    operation,
+                    callback=lambda response, error=None: None)
+
+        count_value_insert = {
+                'name': jc['name'],
+                'ts': time.time(),
+                'count': jc['count'] if 'count' in jc else 1
+        }
+        self.db.counters.insert(count_value_insert, callback=self._on_post)
 
     def _on_name_search(self, jc, response, error):
         if not response:
@@ -76,7 +135,8 @@ class StatisticsRecorder(tornado.web.RequestHandler):
 
         else:
             query = {'name': jc['name']}
-            operation = {'$inc': {'count': 1}}
+            # increase the count and update the 'last seen' time
+            operation = {'$inc': {'count': 1}, '$set': {'last_seen': time.time()}}
             self.db.counterlist.update(
                     query,
                     operation,
@@ -132,7 +192,7 @@ if __name__ == '__main__':
 
     routes = [
         (r"/list", CounterList),
-        (r"/view/([,\w]+)", StatisticsRecorder),
+        (r"/view/([\.,\w]+)", StatisticsRecorder),
         (r"/add", StatisticsRecorder),
     ]
 
