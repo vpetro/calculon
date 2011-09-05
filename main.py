@@ -52,25 +52,22 @@ class StatisticsRecorder(tornado.web.RequestHandler):
             jc = json.loads(temp)
 
         if not jc:
+            self.finish()
             return
 
-        jc['ts'] = time.time()
-        # by default add 1 for every counter, otherwise use whatever is supplied
-        if 'count' not  in jc:
-            jc['count'] = 1
 
         #self.db.counters.insert(jc, callback=partial(self._on_post, jc))
         self.db.counters.find_one({'name': jc['name']},
                 callback=partial(self._on_name_search, jc))
 
     def _on_name_search(self, jc, response, error):
-        print 'response', str(response)
         if not response:
             to_insert = {
                     'name': jc['name'],
                     'count': 1,
                     'last_seen': time.time(),
                     'first_seen': time.time(),
+                    'meta': jc['meta'] if 'meta' in jc else None
             }
 
             self.db.counterlist.insert(
@@ -78,7 +75,6 @@ class StatisticsRecorder(tornado.web.RequestHandler):
                     callback=lambda response, error=None: None)
 
         else:
-            print 'response is not none'
             query = {'name': jc['name']}
             operation = {'$inc': {'count': 1}}
             self.db.counterlist.update(
@@ -86,8 +82,13 @@ class StatisticsRecorder(tornado.web.RequestHandler):
                     operation,
                     callback=lambda response, error=None: None)
 
-        print 'inserting a new value for the counter'
-        self.db.counters.insert(jc, callback=self._on_post)
+        count_value_insert = {
+                'name': jc['name'],
+                'ts': time.time(),
+                'count': jc['count'] if 'count' in jc else None
+        }
+
+        self.db.counters.insert(count_value_insert, callback=self._on_post)
 
     def _on_post(self, response, error):
         if error:
