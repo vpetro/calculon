@@ -85,7 +85,7 @@ class StatisticsRecorder(tornado.web.RequestHandler):
         count_value_insert = {
                 'name': jc['name'],
                 'ts': time.time(),
-                'count': jc['count'] if 'count' in jc else None
+                'count': jc['count'] if 'count' in jc else 1
         }
 
         self.db.counters.insert(count_value_insert, callback=self._on_post)
