@@ -25,7 +25,7 @@
       <td>{{ row['first_seen'] }} </td>
       <td>{{ row['last_seen'] }}</td>
       <td>
-        {% if 'meta' in row  and row['meta']['type'] == 'exception' %}
+        {% if 'meta' in row  and row['meta'] and row['meta']['type'] == 'exception' %}
           {% for line in row['meta']['lines'].split('\n') %}
             {{ line }} <br/>
           {% end %}
