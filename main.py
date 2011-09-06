@@ -63,7 +63,7 @@ class StatisticsRecorder(tornado.web.RequestHandler):
                     meta['name'],
                     meta['value'],
                     meta['lineno'])
-            exception_hash = exception_hash.lower()
+            exception_hash = exception_hash.lower().replace(' ', '')
 
             query = {
                 'name': jc['name'],
@@ -83,7 +83,7 @@ class StatisticsRecorder(tornado.web.RequestHandler):
                 meta['name'],
                 meta['value'],
                 meta['lineno'])
-        exception_hash = exception_hash.lower()
+        exception_hash = exception_hash.lower().replace(' ', '')
 
         if not response:
 
