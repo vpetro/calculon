@@ -9,7 +9,7 @@ import os.path
 from functools import partial
 from datetime import datetime
 
-class StatisticsRecorder(tornado.web.RequestHandler):
+class StatisticsViewer(tornado.web.RequestHandler):
     @property
     def db(self):
         if not hasattr(self, '_db'):
@@ -44,10 +44,31 @@ class StatisticsRecorder(tornado.web.RequestHandler):
 
         self.render('template.html', name=name, values=values)
 
+class StatisticsRecorder(tornado.web.RequestHandler):
+    @property
+    def db(self):
+        if not hasattr(self, '_db'):
+            self._db = asyncmongo.Client(
+                    pool_id='mydb',
+                    host='127.0.0.1',
+                    port=27017,
+                    maxcached=10,
+                    maxconnections=50,
+                    dbname='calculon')
+        return self._db
+
+    @tornado.web.asynchronous
+    def get(self, counter_name):
+        jc = {'name': counter_name,
+              'first_seen': time.time(),
+              'last_seen': time.time(),
+              'count': 1}
+        self.db.counterlist.find_one({'name': counter_name}, callback=partial(self._on_name_search, jc))
+
+
     @tornado.web.asynchronous
     def post(self):
         jc = None
-        #temp = self.get_argument("r", None)
         temp = self.request.body
 
         if temp is not None:
@@ -192,8 +213,9 @@ if __name__ == '__main__':
 
     routes = [
         (r"/list", CounterList),
-        (r"/view/([\.,\w]+)", StatisticsRecorder),
+        (r"/view/([\.,\w]+)", StatisticsViewer),
         (r"/add", StatisticsRecorder),
+        (r'/inc/([\.,\w]+)', StatisticsRecorder),
     ]
 
 
